@@ -1,0 +1,27 @@
+{
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "command": "bash $(dirname \"$BASH_SOURCE\")/../scripts/vibe-runner-discover.sh",
+      "description": "Discovery: сканирование 12 типов инструментов Claude Code"
+    },
+    {
+      "event": "PostToolUse",
+      "pattern": "Write|Edit",
+      "command": "bash $(dirname \"$BASH_SOURCE\")/../scripts/vibe-runner-check.sh write \"$CLAUDE_TOOL_ARG_file_path\"",
+      "description": "Проверка: TDD (тест перед кодом), re-discovery при изменении rules"
+    },
+    {
+      "event": "PreToolUse",
+      "pattern": "Bash",
+      "matcher": "git commit",
+      "command": "bash $(dirname \"$BASH_SOURCE\")/../scripts/vibe-runner-check.sh commit \"$CLAUDE_TOOL_ARG_command\"",
+      "description": "Проверка: conventional commits"
+    },
+    {
+      "event": "Stop",
+      "command": "bash $(dirname \"$BASH_SOURCE\")/../scripts/vibe-runner-check.sh session_end",
+      "description": "Compliance summary за сессию"
+    }
+  ]
+}

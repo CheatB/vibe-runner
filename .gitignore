@@ -1,0 +1,13 @@
+# Vibe Runner runtime files
+vibe-runner.log
+vibe-runner.log.old
+vibe-runner-discovery.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~

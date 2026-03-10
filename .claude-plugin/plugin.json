@@ -1,0 +1,8 @@
+{
+  "name": "vibe-runner",
+  "version": "1.0.0",
+  "description": "Enforcement-плагин для AI-workflow. Не создаёт новых сущностей — читает существующие rules, hooks, CLAUDE.md и добавляет слой принуждения.",
+  "author": "CheatB",
+  "license": "MIT",
+  "repository": "https://github.com/CheatB/vibe-runner"
+}
