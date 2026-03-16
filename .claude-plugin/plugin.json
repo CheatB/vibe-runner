@@ -1,7 +1,7 @@
 {
   "name": "vibe-runner",
-  "version": "1.0.0",
-  "description": "Enforcement-плагин для AI-workflow. Не создаёт новых сущностей — читает существующие rules, hooks, CLAUDE.md и добавляет слой принуждения.",
+  "version": "2.0.0",
+  "description": "Universal enforcement plugin for Claude Code. Reads your existing rules, hooks, CLAUDE.md and adds deterministic checks: TDD, secrets, file-size, conventional commits, custom checks, phase control.",
   "author": "CheatB",
   "license": "MIT",
   "repository": "https://github.com/CheatB/vibe-runner"

@@ -11,3 +11,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+vibe-runner-discovery.json
+vibe-runner.log
+vibe-runner.log.old
+vibe-runner-state.json

@@ -1,154 +1,222 @@
-# 🏃 Vibe Runner
+# Vibe Runner 2.0
 
-**Enforcement-плагин для Claude Code.** Не создаёт новых сущностей — читает существующие rules, hooks, CLAUDE.md и добавляет слой принуждения.
+> Universal enforcement plugin for Claude Code. Reads your existing rules, hooks, CLAUDE.md and adds deterministic checks that Claude cannot ignore.
 
-## Проблема
+## What's New in v2.0
 
-Claude Code **знает** твои правила (загружает из `rules/` и `CLAUDE.md`), но **не всегда им следует**:
+**Framework-agnostic enforcement.** Works with any development process — Vibe Framework, corporate standards, or custom rules. No longer limited to basic TDD + conventional commits.
 
-```
-— Ты руководствуешься моим фреймворком?
-— Да, всё загружено через CLAUDE.md и rules/
-— Ты всегда строго его придерживаешься?
-— Честно — нет, не всегда строго
-```
+### ✅ Built-in Checks
 
-Rules и CLAUDE.md — это рекомендации. Vibe Runner превращает их в принуждение.
+| Check | What it does | Default |
+|-------|--------------|---------|
+| **TDD** | Blocks code in src/ without tests in tests/ | ON |
+| **File Size** | Blocks files >N lines (configurable limit) | ON (300) |
+| **Secrets** | Blocks hardcoded tokens, API keys, passwords | ON |
+| **Design Tokens** | Blocks hardcoded colors in UI files | OFF |
+| **Env in Code** | Blocks passwords/secrets outside .env | ON |
+| **Conventional Commits** | Blocks invalid commit messages | ON |
+| **No .env Commit** | Blocks .env files in staging | ON |
+| **Diff Size** | Warns on large diffs (>N lines) | ON (500) |
 
-## Как работает
+### 🔧 Custom Checks
 
-```
-Сейчас:   rules/ + CLAUDE.md → Claude читает → Claude "забывает" → нарушение
-С VR:     rules/ + CLAUDE.md → Claude читает → hooks ПРОВЕРЯЮТ → нарушение БЛОКИРУЕТСЯ
-                                              → meta-rule КОРРЕКТИРУЕТ
-                                              → compliance log ФИКСИРУЕТ
-```
+Define your own rules via `vibe-runner.config.json`:
 
-Три механизма:
-1. **Hooks** — детерминистические bash-проверки, которые Claude не может проигнорировать
-2. **Meta-rule** — правило самокоррекции: нарушил → остановись → исправь → залогируй
-3. **Compliance log** — прозрачность: что соблюдено, что нарушено
-
-## Установка
-
-```bash
-claude plugin add github:CheatB/vibe-runner
-```
-
-Всё. VR автоматически просканирует твой сетап при следующем запуске.
-
-## Что внутри
-
-```
-vibe-runner/
-├── .claude-plugin/
-│   └── plugin.json              # манифест плагина
-├── rules/
-│   └── vibe-runner.md           # meta-rule: самокоррекция + compliance
-├── hooks/
-│   └── hooks.json               # определения хуков
-├── scripts/
-│   ├── vibe-runner-discover.sh  # сканирование 12 типов инструментов
-│   └── vibe-runner-check.sh     # детерминистические проверки
-├── tests/
-│   └── test-vibe-runner.sh      # тесты
-├── SECURITY.md
-├── LICENSE
-└── README.md
+```json
+{
+  "custom_checks": [
+    {
+      "name": "no-print-logging",
+      "on": "write",
+      "pattern": "*.py", 
+      "grep": "\\bprint\\(",
+      "exclude_grep": "vr-ignore",
+      "severity": "block",
+      "message": "Use logging.getLogger() instead of print()"
+    }
+  ]
+}
 ```
 
-**4 рабочих файла.** Ничего лишнего.
+**Supported custom check types:**
+- `grep` — block if pattern found
+- `must_contain` — warn if pattern NOT found  
+- `function_length` — limit function size
+- `file_exists` — require specific files
+- Commit hooks: `grep_staged`, `grep_message`
 
-## Discovery
+### 📋 Phase Control (Optional)
 
-При первом запуске VR сканирует **все 12 типов инструментов** Claude Code:
+For frameworks with development phases (like Vibe Framework):
 
-| # | Тип | Где ищет |
-|---|---|---|
-| 1 | Rules | `~/.claude/rules/`, `.claude/rules/` |
-| 2 | Hooks | `settings.json`, `.claude/hooks/` |
-| 3 | MCP Servers | `~/.claude.json`, `.mcp.json` |
-| 4 | Commands | `~/.claude/commands/`, `.claude/commands/` |
-| 5 | Skills | `~/.claude/skills/`, `.claude/skills/` |
-| 6 | Plugins | установленные плагины |
-| 7 | Subagents | `~/.claude/agents/`, `.claude/agents/` |
-| 8 | LSP Servers | `.lsp.json` |
-| 9 | Auto Memory | `~/.claude/projects/<hash>/memory/` |
-| 10 | CLAUDE.md | `./CLAUDE.md`, `.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` |
-| 11 | AGENTS.md | корень проекта |
-| 12 | settings.json | глобальный / проектный |
-
-Результат → `vibe-runner-discovery.json`. Claude читает его и формирует понимание твоего процесса.
-
-## Enforcement
-
-### TDD
-
-Если ты пишешь в `src/` — VR проверяет, что тест уже существует:
-
-```
-[VR:CHECK] ❌ TDD нарушение: нет теста для src/api.py (ожидался tests/test_api.py)
-VIOLATION:tdd — напиши тест tests/test_api.py перед кодом
+```json
+{
+  "phases": {
+    "enabled": true,
+    "definitions": [
+      {"id": "spec", "artifact": "specs/*.md", "artifact_min_size": 500},
+      {"id": "build", "artifact": "src/*"}
+    ],
+    "gates": [
+      {"from": "spec", "to": "build", "require_artifact": true}
+    ]
+  }
+}
 ```
 
-### Conventional Commits
+Blocks writing to `src/` until spec artifact is complete.
 
+## Installation
+
+1. **Install the plugin:**
+   ```bash
+   claude plugin add ./vibe-runner
+   ```
+
+2. **Works immediately** with defaults (TDD + secrets + conventional commits)
+
+3. **Optional:** Create `vibe-runner.config.json` for customization
+
+## Configuration
+
+### Minimal Setup
+No config file needed. Works out-of-the-box with sensible defaults.
+
+### Custom Configuration
+Create `vibe-runner.config.json` in your project root:
+
+```json
+{
+  "checks": {
+    "file-size": {"enabled": true, "limit": 200},
+    "tdd": {"enabled": true, "src": "app/", "tests": "spec/"},
+    "design-tokens": {"enabled": true}
+  },
+  "custom_checks": [
+    {
+      "name": "no-console-log",
+      "on": "write",
+      "pattern": "*.js|*.ts",
+      "grep": "console\\.log\\(",
+      "severity": "warn",
+      "message": "Use a proper logger"
+    }
+  ]
+}
 ```
-[VR:CHECK] ❌ Conventional commit нарушение: fixed a bug
-VIOLATION:conventional_commit — используй формат: feat|fix|docs|...: описание
+
+**Pre-made templates:**
+- `templates/minimal.json` — Default settings
+- `templates/corporate.json` — Corporate standards (Jira commits, stricter limits)  
+- `templates/vibe-framework.json` — Full Vibe Framework setup with phases
+
+## How It Works
+
+1. **Discovery** — Scans your `.claude/` directory for rules, hooks, agents, skills
+2. **Enforcement** — Hooks into Claude Code's file write/commit operations  
+3. **Blocking** — Returns `exit 1` to prevent action when rules violated
+4. **Logging** — Records all violations and passes in `vibe-runner.log`
+
+**Hook events:**
+- `SessionStart` → Discovery scan
+- `PostToolUse(Write|Edit)` → File checks  
+- `PreToolUse(Bash: git commit)` → Commit checks
+- `Stop` → Session summary
+
+## Examples
+
+### Corporate Team
+```json
+{
+  "checks": {
+    "file-size": {"limit": 200},
+    "conventional-commits": {"pattern": "^[A-Z]+-[0-9]+: .+"}
+  },
+  "custom_checks": [
+    {
+      "name": "require-error-handling",
+      "pattern": "src/api/*.py",
+      "must_contain": "try:|except:",
+      "severity": "warn"
+    }
+  ]
+}
 ```
 
-### Re-discovery
-
-Изменил `rules/` или `CLAUDE.md` во время сессии? VR автоматически пересканирует и обновит inventory.
-
-## Compliance маркеры
-
-После каждого значимого действия Claude выводит:
-
-```
-[VR] Write src/api.py | TDD ✅ | Anti-Mirage ✅ | Security ✅
-[VR] git commit | Conventional ✅ | Self-review ✅
-[VR:INCIDENT] TDD ❌ → написал код без теста → откатил → написал тест → продолжил
-```
-
-Всё дублируется в `vibe-runner.log`. В конце сессии — summary:
-
-```
-SESSION_SUMMARY: markers=12 incidents=1 violations=0 passes=8
+### UI Project with Design System
+```json
+{
+  "checks": {
+    "design-tokens": {"enabled": true},
+    "tdd": {"enabled": false}
+  },
+  "custom_checks": [
+    {
+      "name": "no-inline-styles",  
+      "pattern": "*.tsx|*.jsx",
+      "grep": "style=\\{\\{",
+      "severity": "block"
+    }
+  ]
+}
 ```
 
-## Безопасность
+### Vibe Framework Project
+Use `templates/vibe-framework.json` for full phase control with gates, subagent tracking, and framework-specific custom checks.
 
-VR читает файлы пользователя — это ответственность. Полная модель безопасности в [SECURITY.md](SECURITY.md).
+## Escape Hatch
 
-Ключевое:
-- **Read-only** — никогда не модифицирует файлы пользователя
-- **No secrets** — из `~/.claude.json` читает только имена серверов, не токены
-- **No network** — не отправляет данных наружу
-- **No eval** — не выполняет строки как код
-- **Minimal deps** — только bash, jq, python3
+Add `# vr-ignore` to any line to exclude it from custom checks:
+```python
+print("debug info")  # vr-ignore
+```
 
-## Тесты
+## Security
 
+- **Read-only** — Never modifies your files
+- **No secrets** — Discovery excludes token values
+- **No network** — All checks run locally
+- **Path validation** — Prevents traversal attacks
+- **No code execution** — Uses regex/glob patterns only
+
+## Troubleshooting
+
+**"Custom check not triggering"**
+- Check pattern matches your file: `*.py` vs `src/**/*.py`
+- Verify regex syntax in `grep`/`must_contain`
+- Use `vr-ignore` comment to test
+
+**"Phase blocked unexpectedly"**  
+- Check `vibe-runner-state.json` for current phase
+- Verify artifact completeness (size + required sections)
+- Set `phases: null` to disable
+
+**"Too many false positives"**
+- Change `severity` from `block` to `warn`
+- Add `exclude_grep: "vr-ignore"` pattern
+- Adjust thresholds (`limit`, `warn`)
+
+## Migration from v1.0
+
+v2.0 is **backward compatible**. Existing projects continue working with the same TDD + conventional commits enforcement.
+
+**New features:**
+- Custom checks replace meta-rule enforcement  
+- Phase control for structured workflows
+- Granular configuration per check type
+- Templates for common setups
+
+## Development
+
+**Test suite:**
 ```bash
 bash tests/test-vibe-runner.sh
 ```
 
-Покрывает: discovery, безопасность (secrets, path traversal, injection), enforcement (TDD, conventional commits), compliance log.
+**Security audit:**  
+All paths validated, no eval/exec, stderr handling, log rotation.
 
-## Требования
+## License
 
-- Claude Code (текущая версия)
-- bash, jq, python3 (уже есть в системе)
-- macOS или Linux
-
-## Лицензия
-
-MIT — [LICENSE](LICENSE)
-
-## Автор
-
-[@CheatB](https://t.me/not_just_a_human) — вайбкодер, менеджер в IT, строю продукты с помощью нейросетей.
-
-Больше про вайбкодинг: [stackovervibe.ru](https://stackovervibe.ru)
+MIT

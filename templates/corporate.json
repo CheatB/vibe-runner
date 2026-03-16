@@ -1,0 +1,26 @@
+{
+  "version": "2.0",
+  "checks": {
+    "file-size": { "enabled": true, "limit": 200 },
+    "tdd": { "enabled": true, "src": "app/", "tests": "spec/", "pattern": "${name}_spec" },
+    "secrets": { "enabled": true },
+    "design-tokens": { "enabled": false },
+    "env-in-code": { "enabled": true },
+    "conventional-commits": { "enabled": true, "pattern": "^[A-Z]+-[0-9]+: .+" },
+    "no-env-commit": { "enabled": true },
+    "diff-size": { "enabled": true, "warn": 300 }
+  },
+  "phases": null,
+  "subagents": null,
+  "custom_checks": [
+    {
+      "name": "no-console-log",
+      "on": "write",
+      "pattern": "*.ts|*.js",
+      "grep": "console\\.log\\(",
+      "exclude_grep": "vr-ignore",
+      "severity": "warn",
+      "message": "Use a logger instead of console.log()"
+    }
+  ]
+}

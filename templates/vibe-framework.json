@@ -1,0 +1,75 @@
+{
+  "version": "2.0",
+  "checks": {
+    "file-size": { "enabled": true, "limit": 300 },
+    "tdd": { "enabled": true, "src": "src/", "tests": "tests/", "pattern": "test_${name}" },
+    "secrets": { "enabled": true },
+    "design-tokens": { "enabled": true },
+    "env-in-code": { "enabled": true },
+    "conventional-commits": { "enabled": true },
+    "no-env-commit": { "enabled": true },
+    "diff-size": { "enabled": true, "warn": 500 }
+  },
+  "phases": {
+    "enabled": true,
+    "definitions": [
+      { "id": "infra", "name": "Infrastructure", "artifact": "CLAUDE.md" },
+      { "id": "user-spec", "name": "User Spec", "artifact": "specs/user-spec-*.md", "artifact_min_size": 500, "required_sections": ["## Проблема", "## Целевая аудитория"] },
+      { "id": "business", "name": "Business Analysis", "artifact": "docs/business-analysis.md", "skip_if": "level:fix,feature" },
+      { "id": "tech-spec", "name": "Tech Spec", "artifact": "specs/tech-spec-*.md", "required_sections": ["## Стек", "## Модель данных"] },
+      { "id": "design", "name": "Design", "artifact": "docs/design-spec.md", "skip_if": "no-ui" },
+      { "id": "tasks", "name": "Task Decomposition", "artifact": "tasks/waves.md" },
+      { "id": "build", "name": "Build", "artifact": "src/*" },
+      { "id": "test", "name": "Testing", "artifact": "tests/*" },
+      { "id": "deploy", "name": "Deploy", "artifact": "CHANGELOG.md" }
+    ],
+    "gates": [
+      { "from": "user-spec", "to": "build", "require_artifact": true },
+      { "from": "tech-spec", "to": "build", "require_artifact": true }
+    ]
+  },
+  "subagents": {
+    "track": true,
+    "recommended": {
+      "user-spec": ["business-analyst"],
+      "tech-spec": ["system-analyst", "skeptic", "security-auditor"],
+      "build": ["code-reviewer"]
+    }
+  },
+  "custom_checks": [
+    {
+      "name": "no-print-logging",
+      "on": "write",
+      "pattern": "*.py",
+      "grep": "\\bprint\\(",
+      "exclude_grep": "vr-ignore",
+      "severity": "block",
+      "message": "Use logging.getLogger() instead of print()"
+    },
+    {
+      "name": "no-raw-sql",
+      "on": "write",
+      "pattern": "*.py",
+      "grep": "execute\\(\"|.raw\\(",
+      "severity": "block",
+      "message": "Use parameterized queries"
+    },
+    {
+      "name": "tdd-anchor-in-tasks",
+      "on": "write",
+      "pattern": "tasks/*.md",
+      "must_contain": "TDD",
+      "severity": "warn",
+      "message": "Task file without TDD anchor"
+    },
+    {
+      "name": "decisions-log-exists",
+      "on": "write",
+      "pattern": "src/*",
+      "check_type": "file_exists",
+      "required_file": "decisions.md",
+      "severity": "warn",
+      "message": "Create decisions.md for decision logging"
+    }
+  ]
+}

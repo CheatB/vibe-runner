@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "checks": {
+    "file-size": { "enabled": true, "limit": 300 },
+    "tdd": { "enabled": true, "src": "src/", "tests": "tests/", "pattern": "test_${name}" },
+    "secrets": { "enabled": true },
+    "design-tokens": { "enabled": false },
+    "env-in-code": { "enabled": true },
+    "conventional-commits": { "enabled": true },
+    "no-env-commit": { "enabled": true },
+    "diff-size": { "enabled": true, "warn": 500 }
+  },
+  "phases": null,
+  "subagents": null,
+  "custom_checks": []
+}
